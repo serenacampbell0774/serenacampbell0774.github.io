@@ -12,6 +12,7 @@
     tableau.extensions.initializeAsync().then(function () {
       // Get worksheets from tableau dashboard
       worksheet = tableau.extensions.dashboardContent.dashboard.worksheets[0];
+      worksheet2 = tableau.extensions.dashboardContent.dashboard.worksheets[1];
 
       // event listener for filters
       let unregisterHandlerFunction = worksheet.addEventListener(tableau.TableauEventType.FilterChanged, filterChangedHandler);
@@ -36,13 +37,13 @@
 
             // converting data to heirarchical json
             result = _(dataArr)
-              .groupBy(x => x["Inner circle1"])
+              .groupBy(x => x["Inner circle"])
               .map((value1, key) => ({
                 name: key, count: sum(value1), children: _(value1)
-                  .groupBy(x => x["Middle circle1"])
+                  .groupBy(x => x["Middle circle"])
                   .map((value2, key) => ({
                     name: key, count: sum(value2), children: _(value2)
-                      .groupBy(x => x["Outer circle1"])
+                      .groupBy(x => x["Outer circle"])
                       .map((value3, key) => ({
                         name: key, count: sum(value3), children: _(value3)
                         .groupBy(x => x["Label"])
@@ -92,13 +93,13 @@
 
         // converting data to heirarchical json
         result = _(dataArr)
-          .groupBy(x => x["Inner circle1"])
+          .groupBy(x => x["Inner circle"])
           .map((value1, key) => ({
             name: key, count: sum(value1), children: _(value1)
-              .groupBy(x => x["Middle circle1"])
+              .groupBy(x => x["Middle circle"])
               .map((value2, key) => ({
                 name: key, count: sum(value2), children: _(value2)
-                  .groupBy(x => x["Outer circle1"])
+                  .groupBy(x => x["Outer circle"])
                   .map((value3, key) => ({
                     name: key, count: sum(value3), children: _(value3)
                     .groupBy(x => x["Label"])
@@ -244,20 +245,36 @@ var color = d3.scale.ordinal()
                 return d.depth ? d.name.split("-")[2] || "" : "";
             });
 
-$("#one").on("click",function(){worksheet.applyFilterAsync("High Risk", ["2"], tableau.FilterUpdateType.Replace).then(
-            worksheet.clearFilterAsync("Outer circle1").then(
-              worksheet.clearFilterAsync("Middle circle1").then(
-                worksheet.clearFilterAsync("Inner circle1")
+$("#one").on("click",function(){
+  worksheet.applyFilterAsync("High Risk", ["2"], tableau.FilterUpdateType.Replace).then(
+            worksheet.clearFilterAsync("Outer circle").then(
+              worksheet.clearFilterAsync("Middle circle").then(
+                worksheet.clearFilterAsync("Inner circle")
               )
             )
+)
+worksheet2.applyFilterAsync("High Risk", ["2"], tableau.FilterUpdateType.Replace).then(
+          worksheet2.clearFilterAsync("Outer circle").then(
+            worksheet2.clearFilterAsync("Middle circle").then(
+              worksheet2.clearFilterAsync("Inner circle")
+            )
+          )
 );});
 
-$("#two").on("click",function(){worksheet.clearFilterAsync("High Risk").then(
-            worksheet.clearFilterAsync("Outer circle1").then(
-              worksheet.clearFilterAsync("Middle circle1").then(
-                worksheet.clearFilterAsync("Inner circle1")
+$("#two").on("click",function(){
+  worksheet.clearFilterAsync("High Risk").then(
+            worksheet.clearFilterAsync("Outer circle").then(
+              worksheet.clearFilterAsync("Middle circle").then(
+                worksheet.clearFilterAsync("Inner circle")
               )
             )
+)
+worksheet2.clearFilterAsync("High Risk").then(
+          worksheet2.clearFilterAsync("Outer circle").then(
+            worksheet2.clearFilterAsync("Middle circle").then(
+              worksheet2.clearFilterAsync("Inner circle")
+            )
+          )
 );});
 
 
@@ -267,18 +284,31 @@ path.transition().style("fill",function(d) { if((d.count===3 || d.count >4) && d
   //.attr("d", arc)
   .attr("opacity",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return 0.9;} else {return 0.5;}})
 
+  worksheet2.applyFilterAsync("High Risk", ["2"], tableau.FilterUpdateType.Replace).then(
+            worksheet2.clearFilterAsync("Outer circle").then(
+              worksheet2.clearFilterAsync("Middle circle").then(
+                worksheet2.clearFilterAsync("Inner circle")
+              )
+            )
+  );
+
     });
 //console.log(worksheet.getSummaryDataAsync("High Risk"))
 
 
 function click(d) {
   // apply filters from d3 chart to worksheet to populate respective data
-  let segment = "Inner circle1", family = "Middle circle1", className = "Outer circle1";
+  let segment = "Inner circle", family = "Middle circle", className = "Outer circle";
   switch (d.depth) {
     case 0: {
       worksheet.clearFilterAsync(family).then(
         worksheet.clearFilterAsync(className).then(
           worksheet.applyFilterAsync(segment, [d.name], tableau.FilterUpdateType.Replace)
+        )
+      )
+      worksheet2.clearFilterAsync(family).then(
+        worksheet2.clearFilterAsync(className).then(
+          worksheet2.applyFilterAsync(segment, [d.name], tableau.FilterUpdateType.Replace)
         )
       )
       break;
@@ -289,12 +319,22 @@ function click(d) {
           worksheet.applyFilterAsync(family, [d.name], tableau.FilterUpdateType.Replace)
         )
       )
+      worksheet2.clearFilterAsync(className).then(
+        worksheet2.applyFilterAsync(segment, [d.parent.name], tableau.FilterUpdateType.Replace).then(
+          worksheet2.applyFilterAsync(family, [d.name], tableau.FilterUpdateType.Replace)
+        )
+      )
       break;
     }
     case 2: {
       worksheet.applyFilterAsync(segment, [d.parent.parent.name], tableau.FilterUpdateType.Replace).then(
         worksheet.applyFilterAsync(family, [d.parent.name], tableau.FilterUpdateType.Replace).then(
           worksheet.applyFilterAsync(className, [d.name], tableau.FilterUpdateType.Replace)
+        )
+      )
+      worksheet2.applyFilterAsync(segment, [d.parent.parent.name], tableau.FilterUpdateType.Replace).then(
+        worksheet2.applyFilterAsync(family, [d.parent.name], tableau.FilterUpdateType.Replace).then(
+          worksheet2.applyFilterAsync(className, [d.name], tableau.FilterUpdateType.Replace)
         )
       )
       break;
