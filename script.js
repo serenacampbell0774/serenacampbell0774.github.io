@@ -283,6 +283,8 @@ path.transition().style("fill",function(d) { if((d.count===3 || d.count >4) && d
   //.attr("d", arc)
   .attr("opacity",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return 0.9;} else {return 0.5;}})
 
+text.transition().attr("opacity",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return 0.9;} else {return 0.2;}})
+
   worksheet2.applyFilterAsync("High Risk", ["2"], tableau.FilterUpdateType.Replace).then(
             worksheet2.clearFilterAsync("Outer circle").then(
               worksheet2.clearFilterAsync("Middle circle").then(
