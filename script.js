@@ -18,6 +18,8 @@
       let unregisterHandlerFunction = worksheet.addEventListener(tableau.TableauEventType.FilterChanged, filterChangedHandler);
       var result;
       function filterChangedHandler(event) {
+
+
         // for filter change
         // Add fieldName with (||) for other filters
         if (event.fieldName === "High Risk") {
@@ -58,23 +60,17 @@
             .value();
 
             plotChart(result);
+
+
+
+
           });
         }
 
       }
 
       unregisterHandlerFunctions.push(unregisterHandlerFunction);
-      ////load data from worksheet2
 
-
-
-      function sum2(arr) {
-        let count = 0;
-        arr.forEach(element => {
-        count = parseInt(element["SUM(High Risk)"]);
-        });
-        return count;
-      }
 
       // load data from worksheet
       let dataArr = [];
@@ -113,6 +109,8 @@
         .value();
 
         plotChart(result);
+
+
       });
 
 
@@ -218,6 +216,7 @@ var color = d3.scale.ordinal()
           })
           .attr("text-anchor", "middle")
           .attr("dx", "0") // margin
+            .attr("opacity",function(d) { if(d.count===0){ return 0.2;} else {return 0.9;}})
           .attr("dy", function(d) {
             if (d.name.split("-").length <2){return "0.35em";}
             else if (d.name.split("-").length ===2) { return "-0.45em";}
@@ -355,7 +354,9 @@ function click(d) {
         var arcText = d3.select(this.parentNode).select("text")
           .attr("opacity", 1)
           .attr("transform", function () {
-            return "translate(" + arc.centroid(e) + ")rotate(" + computeTextRotation(e) + ")";
+            if(d.depth>0){
+           return "translate(" + arc.centroid(e) + ")rotate(" + computeTextRotationClick(e) + ")";}
+           else {return "translate(" + arc.centroid(e) + ")rotate(" + computeTextRotation(e) + ")";}
           })
           .attr("text-anchor", "middle")
 
@@ -379,7 +380,12 @@ graph();
           }
 
           function computeTextRotation(d) {
-            var ang = (Math.PI / 2 + x(d.x + d.dx / 2) - Math.PI / 2) / Math.PI * 180;
+            var ang = (Math.PI / 2 + x(d.x + d.dx / 2) - Math.PI / 2) / Math.PI *180;
+            return (ang > 270 || ang < 90) ? ang : 180 + ang;
+          }
+
+          function computeTextRotationClick(d) {
+            var ang = (Math.PI / 2 + x(d.x + d.dx / 2) - Math.PI / 2) / Math.PI; //*180;
             return (ang > 270 || ang < 90) ? ang : 180 + ang;
           }
 
