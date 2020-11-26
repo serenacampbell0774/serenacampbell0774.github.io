@@ -2,6 +2,7 @@
 
 // Wrap everything in an anonymous function to avoid poluting the global namespace
 (function () {
+
   // Event handlers for filter change
   let unregisterHandlerFunctions = [];
 
@@ -10,21 +11,26 @@
   $(document).ready(function () {
     // Initialize tableau extension
     tableau.extensions.initializeAsync().then(function () {
-      // Get worksheets from tableau dashboard
+
+      // Get worksheets from tableau dashboard: [0] is sheet1 and [1] is sheet2
       worksheet = tableau.extensions.dashboardContent.dashboard.worksheets[0];
       worksheet2 = tableau.extensions.dashboardContent.dashboard.worksheets[1];
 
       // event listener for filters
       let unregisterHandlerFunction = worksheet.addEventListener(tableau.TableauEventType.FilterChanged, filterChangedHandler);
       var result;
+
+      ///function called for when filters change -- need updated sum values for partition.
+      ///This is only triggered for the first button filtering on "high Risk" will not be needed
+      //in final code as this slows everything down due to a memory leak and reloading the data is time consuming:
+
       function filterChangedHandler(event) {
-
-
         // for filter change
         // Add fieldName with (||) for other filters
         if (event.fieldName === "High Risk") {
           // reload summary data
           let dataArr = [];
+
           worksheet.getSummaryDataAsync().then(data => {
             let dataJson;
             data.data.map(d => {
@@ -50,7 +56,7 @@
                         name: key, count: sum(value3), children: _(value3)
                         .groupBy(x => x["Label"])
                         .map((value4, key) => ({ name: key, count: outersum(value4) , children: [] }))
-                        //worksheet.getSelectedMarksAsync().marks.data[0]
+
                           .value()
                   }))
                   .value()
@@ -61,9 +67,6 @@
 
             plotChart(result);
 
-
-
-
           });
         }
 
@@ -71,8 +74,8 @@
 
       unregisterHandlerFunctions.push(unregisterHandlerFunction);
 
+      // First instance of data load from worksheet (above is for filtering instances only)
 
-      // load data from worksheet
       let dataArr = [];
       worksheet.getSummaryDataAsync().then(data => {
         let dataJson;
@@ -134,12 +137,14 @@
   });
 
   // ========================== D3 CHART ===================== //
+
   function plotChart(data) {
 
     var div = d3.select("body").append("div")
       .attr("class", "tooltip")
       .style("opacity", 0);
-    ///svg is size of container
+
+//// width of plot svg
     var width = 950,
       height = 800,
       radius = height / 2;
@@ -150,10 +155,11 @@
     var y = d3.scale.linear()
       .range([0, radius]);
 
-
+///custom colour scale based on html colour codes in HEX
 var color = d3.scale.ordinal()
-	.range(['#ffffff', '#ffb400','#f09020', '	#cf0101', '#8b8484','#c10303','#948b8b','#ffb400','#f09020', '#8b8484']);//d3.scale.category20c();
+	.range(['#ffffff', '#ffb400','#f09020', '	#cf0101', '#8b8484','#c10303','#948b8b','#ffb400','#f09020', '#8b8484']);
 
+//to maintain colour through nodes, node.depth > 1 is to skip the inner circle which we want to be white .
 
     function getRootmostAncestorByRecursion(node) {
         return node.depth > 1 ? getRootmostAncestorByRecursion(node.parent) : node;
@@ -162,11 +168,7 @@ var color = d3.scale.ordinal()
     var arc;
 
 
-
-
     function graph() {
-
-
 
       d3.select("svg").remove();
       var svg = d3.select("body").append("svg")
@@ -175,6 +177,7 @@ var color = d3.scale.ordinal()
         .append("g")
         .attr("transform", "translate(" + width /2 + "," + (height /2) + ")");
 
+///partition of the arcs, based on d.count, but for the outer ring we want equi. partitioned.
       var partition = d3.layout.partition()
         .value(function (d) { if (d.depth === 3){return 1;} else {return d.count;} });
 
@@ -191,33 +194,28 @@ var color = d3.scale.ordinal()
 
       var root = data[0];
 
-
       var g = svg.selectAll("g")
         .data(partition.nodes(root))
         .enter().append("g")
 
-
-
-
-
       var path = g.append("path")
         .attr("d", arc)
+        ///setting colour and opacity with fill:
         .attr("fill", d => { while (d.depth > 1) d = d.parent; return color(getRootmostAncestorByRecursion(d).name); })
         .style("fill", function (d) { return color(getRootmostAncestorByRecursion(d).name);})
         .attr("opacity",function(d) { if(d.count===0){ return 0.2;} else {return 0.9;}})
+        ///when clicking on element d:
         .on("click", (d) => click(d));
-
 
 
         var text = g.append("text")
           .attr("transform", function (d) {
             return "translate(" + arc.centroid(d) + ")rotate(" + computeTextRotation(d) + ")";
-            // return "rotate(" + computeTextRotation(d) + ")";
           })
           .attr("text-anchor", "middle")
           .attr("dx", "0") // margin
-            .attr("opacity",function(d) { if(d.count===0){ return 0.2;} else {return 0.9;}})
-          .attr("dy", function(d) {
+          .attr("opacity",function(d) { if(d.count===0){ return 0.2;} else {return 0.9;}}) // text-opacity
+          .attr("dy", function(d) { ///splitting names by "-" manually done in underlying data for now
             if (d.name.split("-").length <2){return "0.35em";}
             else if (d.name.split("-").length ===2) { return "-0.45em";}
             else {return "-0.65em";}
@@ -244,6 +242,11 @@ var color = d3.scale.ordinal()
                 return d.depth ? d.name.split("-")[2] || "" : "";
             });
 
+
+/////Buttons
+
+
+//High Risk V1 -- Zoom
 $("#one").on("click",function(){
   worksheet.applyFilterAsync("High Risk", ["2"], tableau.FilterUpdateType.Replace).then(
             worksheet.clearFilterAsync("Outer circle").then(
@@ -260,6 +263,7 @@ worksheet2.applyFilterAsync("High Risk", ["2"], tableau.FilterUpdateType.Replace
           )
 );});
 
+//Reset to all filter
 $("#two").on("click",function(){
   worksheet.clearFilterAsync("High Risk").then(
             worksheet.clearFilterAsync("Outer circle").then(
@@ -276,7 +280,7 @@ worksheet2.clearFilterAsync("High Risk").then(
           )
 );});
 
-
+//High Risk V2 -- Highlight
 $("#three").on("click",function(){
 //  d3.selectAll("g")
 path.transition().style("fill",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return "#c10303";} else if (d.count>160) {return "#f6f4f4"} else {return "#B4B8B6";}})
@@ -294,11 +298,10 @@ text.transition().attr("opacity",function(d) { if((d.count===3 || d.count >4) &&
   );
 
     });
-//console.log(worksheet.getSummaryDataAsync("High Risk"))
 
 
 function click(d) {
-  // apply filters from d3 chart to worksheet to populate respective data
+  // apply filters from d3 chart to worksheet to populate respective data. depending on what level is clicked (d.depth)
   let segment = "Inner circle", family = "Middle circle", className = "Outer circle";
   switch (d.depth) {
     case 0: {
@@ -356,6 +359,7 @@ function click(d) {
         var arcText = d3.select(this.parentNode).select("text")
           .attr("opacity", 1)
           .attr("transform", function () {
+            ///if middle/outer circles the rotation should not be as pronounced:
             if(d.depth>0){
            return "translate(" + arc.centroid(e) + ")rotate(" + computeTextRotationClick(e) + ")";}
            else {return "translate(" + arc.centroid(e) + ")rotate(" + computeTextRotation(e) + ")";}
@@ -367,7 +371,7 @@ function click(d) {
     });
 }
 }
-graph();
+graph(); ///plot graph.
 
 
           function arcTween(d) {
