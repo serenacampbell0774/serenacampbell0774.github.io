@@ -113,6 +113,24 @@
 
         plotChart(result);
 
+        function flatten(root) {
+          var nodes = [],
+            i = 0;
+
+          function recurse(node) {
+            if (node.children) node.children.forEach(recurse);
+            if (!node.id) node.id = ++i;
+            nodes.push(node);
+          }
+
+          recurse(root);
+          return nodes;
+        }
+
+         var nodes = flatten(result);
+
+         return nodes;
+
 
       });
 
@@ -120,7 +138,7 @@
       function sum(arr) {
         let count = 0;
         arr.forEach(element => {
-          count += parseInt(element["SUM(Value)"]);
+          count += parseInt(element["MIN(Value)"]);
         });
         return count;
       }
@@ -128,7 +146,7 @@
       function outersum(arr) {
         let count = 0;
         arr.forEach(element => {
-        count = parseInt(element["SUM(Value)"]);
+        count = parseInt(element["MIN(Value)"]);
         });
         return count;
       }
@@ -158,6 +176,8 @@
 ///custom colour scale based on html colour codes in HEX
 var color = d3.scale.ordinal()
 	.range(['#ffffff', '#ffb400','#f09020', '	#cf0101', '#8b8484','#c10303','#948b8b','#ffb400','#f09020', '#8b8484']);
+  var color2 = d3.scale.ordinal()
+  	.range(['#ffb400','#f09020', '#cf0101', '#8b8484','#c10303','#948b8b','#ffb400','#f09020', '#8b8484']);
 
 //to maintain colour through nodes, node.depth > 1 is to skip the inner circle which we want to be white .
 
@@ -203,9 +223,9 @@ var color = d3.scale.ordinal()
         ///setting colour and opacity with fill:
         .attr("fill", d => { while (d.depth > 1) d = d.parent; return color(getRootmostAncestorByRecursion(d).name); })
         .style("fill", function (d) { return color(getRootmostAncestorByRecursion(d).name);})
-        .attr("opacity",function(d) { if(d.count===0){ return 0.6;} else {return 1;}})
-        ///when clicking on element d:
-        .on("click", (d) => click(d));
+        .attr("opacity",function(d) { if(d.count===0){ return 0.7;} else {return 1;}})
+        .on("click", (d) => click(d))
+
 
 
         var text = g.append("text")
@@ -248,47 +268,18 @@ var color = d3.scale.ordinal()
 
 
 //High Risk V1 -- Zoom
-$("#one").on("click",function(){
-  worksheet.applyFilterAsync("High Risk", ["2"], tableau.FilterUpdateType.Replace).then(
-            worksheet.clearFilterAsync("Outer circle").then(
-              worksheet.clearFilterAsync("Middle circle").then(
-                worksheet.clearFilterAsync("Inner circle")
-              )
-            )
-)
-worksheet2.applyFilterAsync("High Risk", ["2"], tableau.FilterUpdateType.Replace).then(
-          worksheet2.clearFilterAsync("Outer circle").then(
-            worksheet2.clearFilterAsync("Middle circle").then(
-              worksheet2.clearFilterAsync("Inner circle")
-            )
-          )
-);});
+
 
 //Reset to all filter
 $("#two").on("click",function(){
-  worksheet.clearFilterAsync("High Risk").then(
-            worksheet.clearFilterAsync("Outer circle").then(
-              worksheet.clearFilterAsync("Middle circle").then(
-                worksheet.clearFilterAsync("Inner circle")
-              )
-            )
-)
-worksheet2.clearFilterAsync("High Risk").then(
-          worksheet2.clearFilterAsync("Outer circle").then(
-            worksheet2.clearFilterAsync("Middle circle").then(
-              worksheet2.clearFilterAsync("Inner circle")
-            )
-          )
-);});
+  clearAllFilters()
+});
+
+
 
 //High Risk V2 -- Highlight
 $("#three").on("click",function(){
 //  d3.selectAll("g")
-path.transition().style("fill",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return "#c10303";} else if (d.count>160) {return "#f6f4f4"} else {return "#B4B8B6";}})
-  //.attr("d", arc)
-  .attr("opacity",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return 0.9;} else {return 0.5;}})
-
-text.transition().attr("opacity",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return 0.9;} else {return 0.2;}})
 
   worksheet2.applyFilterAsync("High Risk", ["2"], tableau.FilterUpdateType.Replace).then(
             worksheet2.clearFilterAsync("Outer circle").then(
@@ -297,6 +288,13 @@ text.transition().attr("opacity",function(d) { if((d.count===3 || d.count >4) &&
               )
             )
   );
+
+  path.transition().style("fill",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return "#c10303";} else if (d.count>160) {return "#f6f4f4"} else {return "#B4B8B6";}})
+    .attr("opacity",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return 0.9;} else {return 0.5;}})
+
+
+  text.transition().attr("opacity",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return 1;} else {return 0.5;}})
+
 
     });
 
@@ -316,6 +314,7 @@ function click(d) {
           worksheet2.applyFilterAsync(segment, [d.name], tableau.FilterUpdateType.Replace)
         )
       )
+      //clearAllFilters()
       break;
     }
     case 1: {
@@ -329,6 +328,7 @@ function click(d) {
           worksheet2.applyFilterAsync(family, [d.name], tableau.FilterUpdateType.Replace)
         )
       )
+
       break;
     }
     case 2: {
@@ -347,30 +347,40 @@ function click(d) {
     default:
   }
 
-  text.transition().attr("opacity", 0);
 
-  path.transition()
-    .attrTween("d", arcTween(d))
-    .each("end", function (e, i) {
-      // check if the animated element's data e lies within the visible angle span given in d
-      if (e.x >= d.x && e.x < (d.x + d.dx)) {
-        let startAngle = Math.PI / 2 + Math.max(0, Math.min(2 * Math.PI, x(e.x)));
-        let endAngle = Math.PI / 2 + Math.max(0, Math.min(2 * Math.PI, x(e.x + e.dx)));
-        // get a selection of the associated text element
-        var arcText = d3.select(this.parentNode).select("text")
-          .attr("opacity", 1)
-          .attr("transform", function () {
-            ///if middle/outer circles the rotation should not be as pronounced:
-            if(d.depth>0){
-           return "translate(" + arc.centroid(e) + ")rotate(" + computeTextRotationClick(e) + ")";}
-           else {return "translate(" + arc.centroid(e) + ")rotate(" + computeTextRotation(e) + ")";}
-          })
-          .attr("text-anchor", "middle")
+    text.transition().attr("opacity", 0);
 
-      }
-      else return ""
-    });
-}
+
+    path.transition()
+    //.style("fill", function (d) { return color(d.depth+1);})
+    //.attr("opacity",function(d) { if(d.count===0){ return 0.5;})
+    //.attr("opacity",function(d){if(d.depth==2){return 0.8} if(d.count===0){ return 0.5} if(d.depth==3){return 0.7} else {return 1;} })
+      .attrTween("d", arcTween(d))
+      .each("end", function (e, i) {
+        // check if the animated element's data e lies within the visible angle span given in d
+        if (e.x >= d.x && e.x < (d.x + d.dx)) {
+          let startAngle = Math.PI / 2 + Math.max(0, Math.min(2 * Math.PI, x(e.x)));
+          let endAngle = Math.PI / 2 + Math.max(0, Math.min(2 * Math.PI, x(e.x + e.dx)));
+          // get a selection of the associated text element
+          var arcText = d3.select(this.parentNode).select("text")
+            .attr("opacity",function(d) { if(d.count===0){ return 0.5;} else {return 1;}})
+            .attr("font-size",function(){if(d.depth != 1) {return 12} else {return 14}})
+            .attr("transform", function () {
+              ///if middle/outer circles the rotation should not be as pronounced:
+              if(d.depth>0){
+             return "translate(" + arc.centroid(e) + ")rotate(" + computeTextRotationClick(e) + ")";}
+             else {return "translate(" + arc.centroid(e) + ")rotate(" + computeTextRotation(e) + ")";}
+            })
+            .attr("text-anchor", "middle")
+
+        }
+        else return ""
+      });
+    }
+
+
+
+
 }
 graph(); ///plot graph.
 
@@ -394,6 +404,27 @@ graph(); ///plot graph.
           function computeTextRotationClick(d) {
             var ang = (Math.PI / 2 + x(d.x + d.dx / 2) - Math.PI / 2) / Math.PI; //*180;
             return (ang > 270 || ang < 90) ? ang : 180 + ang;
+          }
+
+          function clearAllFilters(){
+            worksheet.clearFilterAsync("High Risk").then(
+                      worksheet.clearFilterAsync("Outer circle").then(
+                        worksheet.clearFilterAsync("Middle circle").then(
+                          worksheet.clearFilterAsync("Inner circle")
+                        )
+                      )
+          )
+          worksheet2.clearFilterAsync("High Risk").then(
+                    worksheet2.clearFilterAsync("Outer circle").then(
+                      worksheet2.clearFilterAsync("Middle circle").then(
+                        worksheet2.clearFilterAsync("Inner circle")
+                      )
+                    )
+                  )
+          //  path.transition()
+            //.attr("fill", d => { while (d.depth > 1) d = d.parent; return color(getRootmostAncestorByRecursion(d).name); })
+            //.style("fill", function (d) { return color(getRootmostAncestorByRecursion(d).name);})
+
           }
 
         }
