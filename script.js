@@ -289,12 +289,11 @@ $("#three").on("click",function(){
             )
   );
 
-  path.transition().style("fill",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return "#c10303";} else if (d.count>160) {return "#f6f4f4"} else {return "#B4B8B6";}})
-    .attr("opacity",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return 0.9;} else {return 0.5;}})
+  path.transition().style("fill",function(d) { if((d.count===3 || d.count >4) && d.count < 160 && d.count != 16){ return "#c10303";} else if (d.count>160) {return "#f6f4f4"} else {return "#B4B8B6";}})
+    .attr("opacity",function(d) { if((d.count===3 || d.count >4) && d.count < 160  && d.count != 16){ return 0.9;} else {return 0.5;}})
 
 
-  text.transition().attr("opacity",function(d) { if((d.count===3 || d.count >4) && d.count < 160){ return 1;} else {return 0.5;}})
-
+  text.transition().attr("opacity",function(d) { if((d.count===3 || d.count >4) && d.count < 160 && d.count != 16){ return 1;} else {return 0.5;}})
 
     });
 
