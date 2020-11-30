@@ -203,12 +203,13 @@ var color = d3.scale.ordinal()
         ///setting colour and opacity with fill:
         .attr("fill", d => { while (d.depth > 1) d = d.parent; return color(getRootmostAncestorByRecursion(d).name); })
         .style("fill", function (d) { return color(getRootmostAncestorByRecursion(d).name);})
-        .attr("opacity",function(d) { if(d.count===0){ return 0.2;} else {return 0.9;}})
+        .attr("opacity",function(d) { if(d.count===0){ return 0.6;} else {return 1;}})
         ///when clicking on element d:
         .on("click", (d) => click(d));
 
 
         var text = g.append("text")
+          .attr("fill",'#ffffff')
           .attr("transform", function (d) {
             return "translate(" + arc.centroid(d) + ")rotate(" + computeTextRotation(d) + ")";
           })
